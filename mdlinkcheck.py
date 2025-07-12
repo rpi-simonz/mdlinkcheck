@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 """ Simple link checker for project-internal Markdown links
 
+It is specialized for use with project "raspiBackupDoc"!
+
+The source files are in this directory structure:
+
+    de/src/
+    en/src/
+
+but the generated HTML structure is
+
+    <files in English>
+    ...
+    de/<files in German>
+
 Links to external targets are not checked but can be listed with option '-e'.
 """
 
@@ -9,7 +22,7 @@ import sys
 from pathlib import Path
 
 
-SRCDIR = "de/src"
+SRCDIRS = (Path("de/src"), Path("en/src"))
 
 
 def check_anchor_in_target_file(target: Path,
@@ -76,10 +89,14 @@ def check_markdown_file(root: Path, file: Path, show_external_links) -> None:
             anchor = ""
 
         if target_filename == "":   # the current file itself
-            is_local_anchor = True
             target = file
+            is_local_anchor = True
         else:
             is_local_anchor = False
+            if target_filename.startswith("../"):
+                target_filename = "../../en/src/" + target_filename[3:]
+            elif target_filename.startswith("de/"):
+                target_filename = "../../de/src/" + target_filename[3:]
             target = root / target_filename
 
         if not target.exists():
@@ -111,5 +128,6 @@ if __name__ == "__main__":
 
     print("")
     print("*** Check project-internal links ***")
-    walk_dir(SRCDIR, show_external_links=SHOW_EXTERNAL_LINKS)
+    for SRCDIR in SRCDIRS:
+        walk_dir(SRCDIR, show_external_links=SHOW_EXTERNAL_LINKS)
     print("")
