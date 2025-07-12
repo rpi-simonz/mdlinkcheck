@@ -1,0 +1,9 @@
+# Ignore ...
+
+# ... my (rpi-simonz) local/private project handling files with ssh-handling data etc.
+.cdprc
+.private-conf.sh
+
+# ... vim editor files
+Session.vim
+**/*.swp
