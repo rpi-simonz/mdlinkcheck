@@ -9,24 +9,28 @@ from pathlib import Path
 DESCRIPTION = """
 Simple link checker for project-internal Markdown links.
 
-Usually it checks Markdown files in the current directory and subdirectories.
+Links to external targets are not checked. There are other tools for that.
+But they can be listed with option '--show-external-links'.
 
-If there is a directory given as argument that one is used instead.
+Usually Markdown files in the current directory and subdirectories are checked.
 
-Using option '-e' it behaves specialized for use with project "raspiBackupDoc"!
+If a directory (or more) are given as arguments that ones are checked instead.
 
-The source files are in this directory structure:
+Option '--raspiBackupDoc' enables the following behavior for that project:
 
-    de/src/
-    en/src/
+    The source files are in a symmetric directory structure:
 
-but the generated HTML structure is
+        de/src/
+        en/src/
 
-    <files in English>
-    ...
-    de/<files in German>
+    but the generated HTML structure is:
+    English as root and other language(s) as subdirectories:
 
-Links to external targets are not checked but can be listed with option '-e'.
+        <files in English>
+        ...
+        de/<files in German>
+
+    This asymmetry is handled automatically.
 """
 
 
@@ -71,7 +75,9 @@ def has_external_link(target_filename,
     return True
 
 
-def check_markdown_file(root: Path, file: Path, show_external_links) -> None:
+def check_markdown_file(root: Path, file: Path,
+                        show_external_links=False,
+                        raspibackupdoc=False) -> None:
     """ Check Markdown file for broken project-internal links """
     with file.open() as f:
         lines = f.readlines()
@@ -98,10 +104,15 @@ def check_markdown_file(root: Path, file: Path, show_external_links) -> None:
             is_local_anchor = True
         else:
             is_local_anchor = False
-            if target_filename.startswith("../"):
-                target_filename = "../../en/src/" + target_filename[3:]
-            elif target_filename.startswith("de/"):
-                target_filename = "../../de/src/" + target_filename[3:]
+
+            if raspibackupdoc:
+                # special handling for raspiBackupDoc
+                if target_filename.startswith("../"):
+                    target_filename = "../../en/src/" + target_filename[3:]
+                elif target_filename.startswith("de/"):
+                    target_filename = "../../de/src/" + target_filename[3:]
+                # end special handling
+
             target = root / target_filename
 
         if not target.exists():
@@ -115,14 +126,18 @@ def check_markdown_file(root: Path, file: Path, show_external_links) -> None:
                                         file, line_number)
 
 
-def walk_dir(directory: Path, show_external_links) -> None:
+def walk_dir(directory: Path,
+             show_external_links=False,
+             raspibackupdoc=False) -> None:
     """ Traverse given directory and check Markdown files """
     for root, _, files in Path(directory).walk(on_error=print):
         for file in files:
             file = root / file
             if file.suffix not in (".md", ".mkd", ".markdown"):
                 continue
-            check_markdown_file(root, file, show_external_links)
+            check_markdown_file(root, file,
+                                show_external_links=show_external_links,
+                                raspibackupdoc=raspibackupdoc)
 
 
 if __name__ == "__main__":
@@ -133,7 +148,10 @@ if __name__ == "__main__":
                     description=DESCRIPTION)
 
     parser.add_argument('pathes', nargs='*', default=["."], metavar='path')
-    parser.add_argument('-e', '--show-external-links',
+    parser.add_argument('--raspiBackupDoc',
+                        help='special handling regarding directory structure',
+                        action='store_true')
+    parser.add_argument('--show-external-links',
                         action='store_true')
 
     args = parser.parse_args()
@@ -141,5 +159,6 @@ if __name__ == "__main__":
     print("*** Check project-internal links ***\n")
 
     for srcdir in args.pathes:
-        walk_dir(srcdir, show_external_links=args.show_external_links)
+        walk_dir(srcdir, show_external_links=args.show_external_links,
+                 raspibackupdoc=args.raspiBackupDoc)
     print("")
