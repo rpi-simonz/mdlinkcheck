@@ -1,37 +1,45 @@
 #!/usr/bin/env python
-""" Simple link checker for project-internal Markdown links """
-
-import argparse
-import re
-from pathlib import Path
-
-
-DESCRIPTION = """
-Simple link checker for project-internal Markdown links.
+""" Simple link checker for project-internal Markdown links
 
 Links to external targets are not checked. There are other tools for that.
-But they can be listed with option '--show-external-links'.
+But they can be listed with option `--show-external-links`.
 
 Usually Markdown files in the current directory and subdirectories are checked.
 
 If a directory (or more) are given as arguments that ones are checked instead.
 
-Option '--raspiBackupDoc' enables the following behavior for that project:
 
-    The source files are in a symmetric directory structure:
+## Installation
 
-        de/src/
-        en/src/
+Simply copy the script into one of your PATH's directories
+and make it executable.
 
-    but the generated HTML structure is:
-    English as root and other language(s) as subdirectories:
 
-        <files in English>
-        ...
-        de/<files in German>
+---------------------------------------------------------------
 
-    This asymmetry is handled automatically.
+## Usage for project 'raspiBackupDoc'
+
+Option `--raspiBackupDoc` enables the handling of the following asymmetry
+in that project (https://github.com/framps/raspiBackupDoc):
+
+The source files are in a **symmetric** directory structure:
+
+    de/src/
+    en/src/
+
+but the generated HTML structure is **asymmetric**:
+English as root and other language(s) as subdirectories:
+
+    <files in English>
+    ...
+    de/<files in German>
+
+---------------------------------------------------------------
 """
+
+import argparse
+import re
+from pathlib import Path
 
 
 def check_anchor_in_target_file(target: Path,
@@ -145,7 +153,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
                     prog='mdlinkcheck.py',
                     formatter_class=argparse.RawDescriptionHelpFormatter,
-                    description=DESCRIPTION)
+                    description=__doc__)
 
     parser.add_argument('pathes', nargs='*', default=["."], metavar='path')
     parser.add_argument('--raspiBackupDoc',
