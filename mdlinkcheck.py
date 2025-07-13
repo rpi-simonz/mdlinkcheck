@@ -1,7 +1,19 @@
 #!/usr/bin/env python
-""" Simple link checker for project-internal Markdown links
+""" Simple link checker for project-internal Markdown links """
 
-It is specialized for use with project "raspiBackupDoc"!
+import argparse
+import re
+from pathlib import Path
+
+
+DESCRIPTION = """
+Simple link checker for project-internal Markdown links.
+
+Usually it checks Markdown files in the current directory and subdirectories.
+
+If there is a directory given as argument that one is used instead.
+
+Using option '-e' it behaves specialized for use with project "raspiBackupDoc"!
 
 The source files are in this directory structure:
 
@@ -16,13 +28,6 @@ but the generated HTML structure is
 
 Links to external targets are not checked but can be listed with option '-e'.
 """
-
-import re
-import sys
-from pathlib import Path
-
-
-SRCDIRS = (Path("de/src"), Path("en/src"))
 
 
 def check_anchor_in_target_file(target: Path,
@@ -122,12 +127,19 @@ def walk_dir(directory: Path, show_external_links) -> None:
 
 if __name__ == "__main__":
 
-    SHOW_EXTERNAL_LINKS = False
-    if len(sys.argv) > 1 and sys.argv[1] == "-e":
-        SHOW_EXTERNAL_LINKS = True
+    parser = argparse.ArgumentParser(
+                    prog='mdlinkcheck.py',
+                    formatter_class=argparse.RawDescriptionHelpFormatter,
+                    description=DESCRIPTION)
 
-    print("")
-    print("*** Check project-internal links ***")
-    for SRCDIR in SRCDIRS:
-        walk_dir(SRCDIR, show_external_links=SHOW_EXTERNAL_LINKS)
+    parser.add_argument('pathes', nargs='*', default=["."], metavar='path')
+    parser.add_argument('-e', '--show-external-links',
+                        action='store_true')
+
+    args = parser.parse_args()
+
+    print("*** Check project-internal links ***\n")
+
+    for srcdir in args.pathes:
+        walk_dir(srcdir, show_external_links=args.show_external_links)
     print("")
