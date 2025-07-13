@@ -17,18 +17,16 @@ Simply copy the script into one of your PATH's directories and make it executabl
 
 ## Usage for project 'raspiBackupDoc'
 
-Option `--raspiBackupDoc` enables the following behavior for [that project](https://github.com/framps/raspiBackupDoc):
+Option `--raspiBackupDoc` enables the handling of the following asymmetry in [that project](https://github.com/framps/raspiBackupDoc):
 
-The source files are in a symmetric directory structure:
+The source files are in a **symmetric** directory structure:
 
     de/src/
     en/src/
 
-but the generated HTML structure is:
+but the generated HTML structure is **asymmetric**:
 English as root and other language(s) as subdirectories:
 
     <files in English>
     ...
     de/<files in German>
-
-This asymmetry is handled automatically.
