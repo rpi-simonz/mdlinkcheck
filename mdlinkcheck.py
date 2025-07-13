@@ -69,16 +69,13 @@ def check_anchor_in_target_file(target: Path,
 
 
 def check_markdown_file(root: Path, file: Path,
-                        external_links=None,
-                        raspibackupdoc=False) -> None:
+                        raspibackupdoc=False,
+                        external_links=None) -> None:
     """Check Markdown file for broken project-internal links
 
     Collect possible external links in list external_links
     as [(file.as_posix(), line_number, target), ...]
     """
-
-    # if not external_links:
-    #     external_links = []
 
     with file.open() as f:
         lines = f.readlines()
@@ -127,25 +124,44 @@ def check_markdown_file(root: Path, file: Path,
                                         file, line_number)
 
 
-def walk_dir(directory: Path,
-             show_external_links=False,
-             raspibackupdoc=False) -> None:
+def walk_dir(directory: Path, raspibackupdoc=False,
+             external_links=None) -> None:
     """Traverse given directory and check Markdown files """
-    external_links: List[tuple] = []
+
     for root, _, files in Path(directory).walk(on_error=print):
         for f in files:
             file = root / f
             if file.suffix not in (".md", ".mkd", ".markdown"):
                 continue
             check_markdown_file(root, file,
-                                external_links=external_links,
-                                raspibackupdoc=raspibackupdoc)
+                                raspibackupdoc=raspibackupdoc,
+                                external_links=external_links)
 
-    if external_links and show_external_links:
-        print("\n\n*** Info: Not checked external link(s) ***\n")
-        for linkdata in sorted(external_links):
-            (filename, line_number, target) = linkdata
-            print(f"{filename}:{line_number}: {target}")
+
+def print_external_links(links):
+    """Print the list of external - unchecked - links """
+
+    print("\n\n*** Info: Not checked external link(s) ***\n")
+    for linkdata in sorted(links):
+        (filename, line_number, target) = linkdata
+        print(f"{filename}:{line_number}: {target}")
+
+
+def main(args):
+    """The main checker ;-) """
+
+    print("*** Check project-internal links ***\n")
+
+    external_links: List[tuple] = []
+
+    for srcdir in args.pathes:
+        walk_dir(srcdir, raspibackupdoc=args.raspiBackupDoc,
+                 external_links=external_links)
+
+    if external_links and args.show_external_links:
+        print_external_links(external_links)
+
+    print("")
 
 
 if __name__ == "__main__":
@@ -162,11 +178,4 @@ if __name__ == "__main__":
     parser.add_argument('--show-external-links',
                         action='store_true')
 
-    args = parser.parse_args()
-
-    print("*** Check project-internal links ***\n")
-
-    for srcdir in args.pathes:
-        walk_dir(srcdir, show_external_links=args.show_external_links,
-                 raspibackupdoc=args.raspiBackupDoc)
-    print("")
+    main(parser.parse_args())
