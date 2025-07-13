@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-""" Simple link checker for project-internal Markdown links
+#!/usr/bin/env python3
+"""Simple link checker for project-internal Markdown links
 
 Links to external targets are not checked. There are other tools for that.
 But they can be listed with option `--show-external-links`.
@@ -11,11 +11,10 @@ If a directory (or more) are given as arguments that ones are checked instead.
 
 ## Installation
 
-Simply copy the script into one of your PATH's directories
-and make it executable.
+Copy the script into one of your PATH's directories and make it executable.
 
 
----------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 ## Usage for project 'raspiBackupDoc'
 
@@ -34,18 +33,19 @@ English as root and other language(s) as subdirectories:
     ...
     de/<files in German>
 
----------------------------------------------------------------
+-------------------------------------------------------------------------------
 """
 
 import argparse
 import re
 from pathlib import Path
+from typing import List
 
 
 def check_anchor_in_target_file(target: Path,
                                 anchor, is_local_anchor,
                                 file: Path, line_number) -> None:
-    """ Check if given anchor is in target file
+    """Check if given anchor is in target file
 
      - as an html anchor "<a name="...">
      - as Markdown heading "# ..."
@@ -53,7 +53,7 @@ def check_anchor_in_target_file(target: Path,
     content = target.read_text()
 
     m1 = re.search(f'<a name="{anchor}">', content)
-    m2 = re.search(f'# {anchor}', content, re.IGNORECASE)
+    m2 = re.search(f'^##* {anchor}', content, re.IGNORECASE | re.MULTILINE)
 
     if m1 or m2:
         return
@@ -68,25 +68,18 @@ def check_anchor_in_target_file(target: Path,
               f" '{anchor}'")
 
 
-def has_external_link(target_filename,
-                      file: Path, line_number,
-                      show_external_links=False) -> bool:
-    """ Check for and optionally report extern links """
-
-    if not re.match(r"https*://", target_filename):
-        return False
-
-    if show_external_links:
-        print(f"{file.as_posix()}:{line_number}:"
-              f" Not checking external link:",
-              target_filename)
-    return True
-
-
 def check_markdown_file(root: Path, file: Path,
-                        show_external_links=False,
+                        external_links=None,
                         raspibackupdoc=False) -> None:
-    """ Check Markdown file for broken project-internal links """
+    """Check Markdown file for broken project-internal links
+
+    Collect possible external links in list external_links
+    as [(file.as_posix(), line_number, target), ...]
+    """
+
+    # if not external_links:
+    #     external_links = []
+
     with file.open() as f:
         lines = f.readlines()
 
@@ -96,40 +89,40 @@ def check_markdown_file(root: Path, file: Path,
         if not m:
             continue
 
-        target_filename = m.groups()[0]
+        target = m.groups()[0]
 
-        if has_external_link(target_filename, file, line_number,
-                             show_external_links):
+        if re.match(r"https*://", target):
+            external_links.append((file.as_posix(), line_number, target))
             continue
 
         try:
-            target_filename, anchor = target_filename.split("#")
+            target, anchor = target.split("#")
         except ValueError:
             anchor = ""
 
-        if target_filename == "":   # the current file itself
-            target = file
+        if target == "":   # the current file itself
+            target_path = file
             is_local_anchor = True
         else:
             is_local_anchor = False
 
             if raspibackupdoc:
                 # special handling for raspiBackupDoc
-                if target_filename.startswith("../"):
-                    target_filename = "../../en/src/" + target_filename[3:]
-                elif target_filename.startswith("de/"):
-                    target_filename = "../../de/src/" + target_filename[3:]
+                if target.startswith("../"):
+                    target = "../../en/src/" + target[3:]
+                elif target.startswith("de/"):
+                    target = "../../de/src/" + target[3:]
                 # end special handling
 
-            target = root / target_filename
+            target_path = root / target
 
-        if not target.exists():
+        if not target_path.exists():
             print(f"{file.as_posix()}:{line_number}:"
-                  f" Target file not found: '{target.as_posix()}'")
+                  f" Target file not found: '{target_path.as_posix()}'")
             continue
 
         if anchor:
-            check_anchor_in_target_file(target,
+            check_anchor_in_target_file(target_path,
                                         anchor, is_local_anchor,
                                         file, line_number)
 
@@ -137,15 +130,22 @@ def check_markdown_file(root: Path, file: Path,
 def walk_dir(directory: Path,
              show_external_links=False,
              raspibackupdoc=False) -> None:
-    """ Traverse given directory and check Markdown files """
+    """Traverse given directory and check Markdown files """
+    external_links: List[tuple] = []
     for root, _, files in Path(directory).walk(on_error=print):
-        for file in files:
-            file = root / file
+        for f in files:
+            file = root / f
             if file.suffix not in (".md", ".mkd", ".markdown"):
                 continue
             check_markdown_file(root, file,
-                                show_external_links=show_external_links,
+                                external_links=external_links,
                                 raspibackupdoc=raspibackupdoc)
+
+    if external_links and show_external_links:
+        print("\n\n*** Info: Not checked external link(s) ***\n")
+        for linkdata in sorted(external_links):
+            (filename, line_number, target) = linkdata
+            print(f"{filename}:{line_number}: {target}")
 
 
 if __name__ == "__main__":
